@@ -1,0 +1,4 @@
+{
+    "displayName": "Button Interactable Scope",
+    "description": "Aggregate multiple conditions into a single Button.interactable state, and handle disabled reasons through IButtonDisabledHandler."
+}

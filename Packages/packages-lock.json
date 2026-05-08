@@ -1,5 +1,11 @@
 {
   "dependencies": {
+    "com.bun3.ui": {
+      "version": "file:com.bun3.ui",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {}
+    },
     "com.unity.2d.animation": {
       "version": "13.0.5",
       "depth": 0,
