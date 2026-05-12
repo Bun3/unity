@@ -12,9 +12,13 @@ namespace Bun3.Core.UnifiedToggle
         private const string TitleInvalidAuthorGroup = "Invalid Author Group";
         private const string TitleInvalidToggleRegistration = "Invalid Toggle Registration";
         private const string TitleToggleDropped = "Toggle Dropped";
+        private const string TitleAuthorGroupRequired = "Author Group Required";
 
         private const string HierarchyRule =
             "A toggle's UnifiedToggleGroup must be placed on a strict ancestor Transform.";
+
+        private const string AuthorGroupRequiredRule =
+            "This toggle requires an Author Group on an ancestor Transform to function. Standalone toggles are not supported.";
 
         private const string Separator = "\n\n";
         private const string OkButton = "OK";
@@ -60,6 +64,13 @@ namespace Bun3.Core.UnifiedToggle
             Show(TitleToggleDropped,
                 $"'{groupName}' dropped '{toggleName}' from _toggles: not a descendant Transform." +
                 Separator + HierarchyRule);
+        }
+
+        public static void ShowAuthorGroupRequired(string toggleName)
+        {
+            Show(TitleAuthorGroupRequired,
+                $"'{toggleName}' has no Author Group assigned." +
+                Separator + AuthorGroupRequiredRule);
         }
     }
 
@@ -157,8 +168,9 @@ namespace Bun3.Core.UnifiedToggle
 
         public sealed override void SetValue(string value)
         {
-            if (_options.Count == 0)
-                return;
+            // Standalone toggles are not supported — cascade must originate from a group.
+            if (_authorGroup == null) return;
+            if (_options.Count == 0) return;
 
             foreach (var option in _options)
             {

@@ -20,6 +20,7 @@ namespace Bun3.Core.Editor.UnifiedToggle
 
         private string _prevSignature;
         private bool _invalidHierarchyDialogShown;
+        private bool _missingAuthorGroupDialogShown;
 
         private void OnEnable()
         {
@@ -31,6 +32,7 @@ namespace Bun3.Core.Editor.UnifiedToggle
 
             _prevSignature = ComputeOptionsSignature(_options);
             _invalidHierarchyDialogShown = false;
+            _missingAuthorGroupDialogShown = false;
         }
 
         public override void OnInspectorGUI()
@@ -82,6 +84,20 @@ namespace Bun3.Core.Editor.UnifiedToggle
             else
             {
                 _invalidHierarchyDialogShown = false;
+            }
+
+            // Standalone toggles are not supported — alert once when Author Group is missing.
+            if (_authorGroup.objectReferenceValue == null)
+            {
+                if (!_missingAuthorGroupDialogShown)
+                {
+                    _missingAuthorGroupDialogShown = true;
+                    UnifiedToggleDialog.ShowAuthorGroupRequired(m_Toggle.name);
+                }
+            }
+            else
+            {
+                _missingAuthorGroupDialogShown = false;
             }
             
             EditorGUI.BeginChangeCheck();
