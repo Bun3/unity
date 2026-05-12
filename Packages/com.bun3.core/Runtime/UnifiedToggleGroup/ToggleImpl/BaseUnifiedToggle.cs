@@ -3,6 +3,67 @@ using UnityEngine;
 
 namespace Bun3.Core.UnifiedToggle
 {
+    // Editor-only dialog helper. Defers display to the next editor tick, so it's safe to call
+    // from OnValidate / OnInspectorGUI without disturbing serialization or GUI state.
+    // No-op in player builds. All dialog strings are centralized here so call sites stay
+    // literal-free.
+    public static class UnifiedToggleDialog
+    {
+        private const string TitleInvalidAuthorGroup = "Invalid Author Group";
+        private const string TitleInvalidToggleRegistration = "Invalid Toggle Registration";
+        private const string TitleToggleDropped = "Toggle Dropped";
+
+        private const string HierarchyRule =
+            "A toggle's UnifiedToggleGroup must be placed on a strict ancestor Transform.";
+
+        private const string Separator = "\n\n";
+        private const string OkButton = "OK";
+
+        public static void Show(string title, string body)
+        {
+#if UNITY_EDITOR
+            UnityEditor.EditorApplication.delayCall += () =>
+            {
+                UnityEditor.EditorUtility.DisplayDialog(title, body, OkButton);
+            };
+#endif
+        }
+
+        public static void ShowAuthorGroupCleared(string toggleName, string groupName)
+        {
+            Show(TitleInvalidAuthorGroup,
+                $"'{toggleName}'._authorGroup='{groupName}' is not an ancestor Transform and will be cleared." +
+                Separator + HierarchyRule);
+        }
+
+        public static void ShowAuthorGroupAssignmentRefused(string toggleName, string groupName)
+        {
+            Show(TitleInvalidAuthorGroup,
+                $"Refused to set _authorGroup='{groupName}': not an ancestor Transform of '{toggleName}'." +
+                Separator + HierarchyRule);
+        }
+
+        public static void ShowAuthorGroupHierarchyHint()
+        {
+            Show(TitleInvalidAuthorGroup, HierarchyRule);
+        }
+
+        public static void ShowToggleRegistrationRefused(string groupName, string toggleName)
+        {
+            Show(TitleInvalidToggleRegistration,
+                $"'{groupName}' refused to register '{toggleName}': toggle Transform is not a descendant." +
+                Separator + HierarchyRule);
+        }
+
+        public static void ShowTogglePruned(string groupName, string toggleName)
+        {
+            Show(TitleToggleDropped,
+                $"'{groupName}' dropped '{toggleName}' from _toggles: not a descendant Transform." +
+                Separator + HierarchyRule);
+        }
+    }
+
+
     [ExecuteAlways]
     public abstract partial class BaseUnifiedToggle : MonoBehaviour, IUnifiedToggle
     {
@@ -36,6 +97,26 @@ namespace Bun3.Core.UnifiedToggle
             if (_authorGroup)
                 _authorGroup.Unregister(this);
         }
+
+        // Constrains the cascade graph to a subgraph of the Transform tree so cycles are
+        // structurally impossible. Returns true only when candidate is a strict ancestor of
+        // target. Same Transform (self) returns false — self-authoring has no semantic and
+        // would blur cascade direction.
+        public static bool IsStrictAncestor(Transform candidate, Transform target)
+        {
+            if (candidate == null || target == null) return false;
+            if (candidate == target) return false;
+            return target.IsChildOf(candidate);
+        }
+
+        protected void ValidateAuthorGroupHierarchy()
+        {
+            if (_authorGroup == null) return;
+            if (IsStrictAncestor(_authorGroup.transform, transform)) return;
+
+            UnifiedToggleDialog.ShowAuthorGroupCleared(name, _authorGroup.name);
+            _authorGroup = null;
+        }
     }
 
     [DisallowMultipleComponent]
@@ -62,6 +143,7 @@ namespace Bun3.Core.UnifiedToggle
         protected virtual void OnValidate()
         {
             EnsureComponent();
+            ValidateAuthorGroupHierarchy();
         }
 
         public sealed override void SetOptionValues(string[] values)

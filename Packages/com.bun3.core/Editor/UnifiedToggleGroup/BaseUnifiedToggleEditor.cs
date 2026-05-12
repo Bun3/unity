@@ -17,8 +17,9 @@ namespace Bun3.Core.Editor.UnifiedToggle
         protected SerializedProperty _options;
 
         protected BaseUnifiedToggle m_Toggle;
-        
+
         private string _prevSignature;
+        private bool _invalidHierarchyDialogShown;
 
         private void OnEnable()
         {
@@ -29,6 +30,7 @@ namespace Bun3.Core.Editor.UnifiedToggle
             m_Toggle = target as BaseUnifiedToggle;
 
             _prevSignature = ComputeOptionsSignature(_options);
+            _invalidHierarchyDialogShown = false;
         }
 
         public override void OnInspectorGUI()
@@ -43,17 +45,43 @@ namespace Bun3.Core.Editor.UnifiedToggle
             var prevGroup = _authorGroup.objectReferenceValue;
             EditorGUILayout.PropertyField(_authorGroup);
 
-            if (prevGroup != _authorGroup.objectReferenceValue)
+            var newGroupObj = _authorGroup.objectReferenceValue;
+            if (prevGroup != newGroupObj)
             {
-                if (prevGroup is UnifiedToggleGroup oldGroup)
+                // Reject assignments that would create a non-ancestor link. The same Transform
+                // (self) is also rejected — see BaseUnifiedToggle.IsStrictAncestor.
+                if (newGroupObj is UnifiedToggleGroup attempt
+                    && !BaseUnifiedToggle.IsStrictAncestor(attempt.transform, m_Toggle.transform))
                 {
-                    oldGroup.Unregister((BaseUnifiedToggle)target);
+                    UnifiedToggleDialog.ShowAuthorGroupAssignmentRefused(m_Toggle.name, attempt.name);
+                    _authorGroup.objectReferenceValue = prevGroup;
                 }
+                else
+                {
+                    if (prevGroup is UnifiedToggleGroup oldGroup)
+                        oldGroup.Unregister((BaseUnifiedToggle)target);
 
-                if (_authorGroup.objectReferenceValue is UnifiedToggleGroup newGroup)
-                {
-                    newGroup.Register((BaseUnifiedToggle)target);
+                    if (newGroupObj is UnifiedToggleGroup newGroup)
+                        newGroup.Register((BaseUnifiedToggle)target);
+
+                    _invalidHierarchyDialogShown = false;
                 }
+            }
+
+            // Safety net for invalid states reached via other paths (scripts, prefab edits).
+            // Shown once per editor lifetime to avoid spamming the popup every repaint.
+            if (_authorGroup.objectReferenceValue is UnifiedToggleGroup current
+                && !BaseUnifiedToggle.IsStrictAncestor(current.transform, m_Toggle.transform))
+            {
+                if (!_invalidHierarchyDialogShown)
+                {
+                    _invalidHierarchyDialogShown = true;
+                    UnifiedToggleDialog.ShowAuthorGroupHierarchyHint();
+                }
+            }
+            else
+            {
+                _invalidHierarchyDialogShown = false;
             }
             
             EditorGUI.BeginChangeCheck();
