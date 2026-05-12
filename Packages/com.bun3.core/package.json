@@ -1,0 +1,23 @@
+{
+  "name": "com.bun3.core",
+  "displayName": "Unity Core",
+  "version": "0.2.0",
+  "unity": "6000.3",
+  "unityRelease": "14f1",
+  "description": "Bun3 shared toolkit for Unity. Includes ReadOnlyAttribute and UnifiedToggleGroup (N-preset toggle with extensible options and cascading groups).",
+  "author": {
+    "name": "Bun3",
+    "url": "https://github.com/Bun3",
+    "email": "bun3.dev@gmail.com"
+  },
+  "dependencies": {
+    "com.mackysoft.serializereference-extensions": "https://github.com/mackysoft/Unity-SerializeReferenceExtensions.git?path=Assets/MackySoft/MackySoft.SerializeReferenceExtensions"
+  },
+  "samples": [
+    {
+      "displayName": "Unified Toggle Group",
+      "description": "N preset states, custom-extensible options, and cascading control of nested groups.",
+      "path": "Samples~/UnifiedToggleGroup"
+    }
+  ]
+}
